@@ -38,12 +38,12 @@
     force: "{{ force }}"
     options:
        features.cache-invalidation: 'on'
-       stat-prefetch: 'off'
+       features.cache-invalidation-timeout: '600'
+       performance.stat-prefetch: 'off'
        server.allow-insecure: 'on'
        storage.batch-fsync-delay-usec: '0'
        user.cifs: 'disable'
        nfs.disable: 'on'
-       network.ping-timeout: "42"
   with_items: "{{ target_volumes }}"
   run_once: true
   ignore_errors: "{{ expand_only | bool }}"
@@ -54,7 +54,7 @@
     state: directory
     group: "{{ nobody_group }}"
     owner: "{{ nobody_user }}"
-    mode: "u=rwX,g=rwX,o=rX"
+    mode: "{{ default_mode }}"
   with_items:
     - "/bricks"
     - "/bricks/{{ brick_name }}"
@@ -77,7 +77,7 @@
     state: directory
     group: "{{ nobody_group }}"
     owner: "{{ nobody_user }}"
-    mode: "{% if item.mode is defined %}{{ item.mode }}{% else %}u=rwX,g=rwX,o=rwX{% endif %}"
+    mode: "{% if item.mode is defined %}{{ item.mode }}{% else %}{{ default_mode }}{% endif %}"
   with_items: "{{ target_volumes }}"
 
 - name: Create shared configuration directory

@@ -71,6 +71,15 @@
     path: /var/lib/pcsd/tokens
   register: tokens
 
+- name: Write basic node list
+  copy:
+    dest: /etc/ansible-gluster-nodes.list
+    content: "{{ groups.gluster }}"
+  register: nodelist
+
+# this block handles changing/updating the node list 
+# and works around issues with pcs cluster auth when
+# corosync and pacemaker are running
 - block:
   - name: Ensure corosync and pacemaker are stopped
     service:
@@ -84,7 +93,7 @@
     file:
       path: /etc/corosync/corosync.conf
       state: absent      
-  when: not tokens.stat.exists
+  when: (not tokens.stat.exists) or nodelist.changed
 
 - name: Start PCSD first (having corosync and pacemaker started breaks initial cluster auth)
   service:
@@ -93,7 +102,7 @@
 
 - name: Authenticate cluster before continuing
   command: "pcs cluster auth {{ host_list | join(' ') }} -u {{ highavailability.user }} -p {{ highavailability.pass }} --force"
-  changed_when: false
+  changed_when: (not tokens.stat.exists) or nodelist.changed
   run_once: true
 
 - name: Add organizing directory for cluster cron stuff

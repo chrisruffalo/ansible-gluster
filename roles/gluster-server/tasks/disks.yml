@@ -28,7 +28,9 @@
   filesystem:
     fstype: xfs
     dev: "/dev/{{ vg_name }}/{{ brick_name }}"
-    opts: "-i size=512" # 512 byte inodes for gluster
+    opts: 
+    - "-i size=512" # 512 byte inodes for gluster
+    - "-n size=8192" # 8k block size for directories
 
 - name: Add mountpoints for newly created brick
   file:

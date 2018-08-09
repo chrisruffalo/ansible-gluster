@@ -13,7 +13,9 @@
 
 - name: Set gluster version for debian
   set_fact:
-    debian_gluster_version: "3.10" # 4.1 = nfs-ganesha 2.6, 3.10 = nfs-ganesha 2.5
+    centos_gluster_version: "41"
+    debian_version: "stretch"
+    debian_gluster_version: "4.1" # 4.1 = nfs-ganesha 2.6, 3.10 = nfs-ganesha 2.5
     debian_ganesha_version: "2.6"
     debian_ganesha_specific_version: "2.6.2"
 

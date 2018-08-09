@@ -2,7 +2,7 @@
 - name: Install prerequisite packages
   yum:
     name:
-    - centos-release-gluster40
+    - centos-release-gluster{{ centos_gluster_version }}
     - epel-release
 
 - name: Upgrade all packages

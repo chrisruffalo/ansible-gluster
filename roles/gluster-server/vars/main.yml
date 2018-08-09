@@ -3,6 +3,7 @@ target_disk: /dev/vdb
 pool_size: 7900G
 lv_size: 7850G
 vg_name: vg_cluster
+default_mode: u=rwX,g=rwX,o=rwX,g+s
 metrics:
   enabled: false
 highavailability:

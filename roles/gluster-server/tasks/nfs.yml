@@ -23,18 +23,14 @@
   notify:
   - "restart nfs-ganesha"
 
-- name: Ensure gluster is started
-  service:
-    name: "{{ gluster_service_name }}"
-    state: started
-    enabled: true
+- name: Ensure nfs-ganesha wants gluster
+  command: "systemctl add-requires nfs-ganesha.service {{ gluster_service_name }}.service"
+  args:
+    creates: "/etc/systemd/system/nfs-ganesha.service.requires/glusterd.service"
 
 - name: Start NFS Ganesha service
   service:
     name: nfs-ganesha
     state: started
     enabled: true
-  notify:
-  - "restart glusterd"
-
 
