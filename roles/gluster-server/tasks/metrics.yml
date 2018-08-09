@@ -1,0 +1,52 @@
+---
+- name: Open firewall for node_exporter
+  firewalld:
+    zone: public
+    port: "9100/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Ensure supplemental binary path exists
+  file:
+    path: "/opt/bin"
+    state: directory
+
+- name: Get release for node_exporter
+  get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v0.15.2/node_exporter-0.15.2.linux-{{ sys_arch }}.tar.gz"
+    dest: /opt/artifacts/node_exporter.tar.gz
+  register: node_exporter_download
+
+- name: Unarchive node_exporter to correct location
+  unarchive:
+    src: /opt/artifacts/node_exporter.tar.gz
+    dest: /opt/bin/
+    remote_src: true
+    exclude:
+    - "LICENSE"
+    - "NOTICE"
+    extra_opts:
+    - "--strip-components=1"
+  when: node_exporter_download.changed
+  notify:
+  - restart node_exporter
+
+- name: Install node_exporter service unit file
+  template:
+    src: node_exporter.service.j2
+    dest: "/etc/systemd/system/node_exporter.service"
+  register: node_exporter_service
+  notify:
+  - restart node_exporter
+
+- name: Reload daemon
+  systemd:
+    daemon_reload: true
+  when: node_exporter_service.changed
+
+- name: Enable node exporter service
+  service:
+    name: node_exporter
+    enabled: true
+    state: started

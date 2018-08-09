@@ -25,10 +25,10 @@
     - nfs
     - samba
 
-# prometheus and grafana tasks for storing/displaying metrics
-- include: prometheus.yml
+# node_exporter for remote metrics scraping
+- include: metrics.yml
   tags: 
-  - prometheus
+  - metrics
   when: metrics.enabled
 
 # do HA tasks when ha is explicitly enabled

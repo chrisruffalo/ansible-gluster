@@ -5,7 +5,7 @@ lv_size: 7850G
 vg_name: vg_cluster
 default_mode: u=rwX,g=rwX,o=rwX,g+s
 metrics:
-  enabled: false
+  enabled: true
 highavailability:
   enabled: true
   dns: "storage.localdomain"
