@@ -5,6 +5,7 @@
     dest: /etc/ganesha/ganesha.conf
   notify:
     - "restart nfs-ganesha"
+    - "restart glusterd"
 
 - name: Ensure export folder exists for ganesha configuration
   file:
@@ -33,4 +34,6 @@
     name: nfs-ganesha
     state: started
     enabled: true
+  notify:
+  - "restart glusterd"
 

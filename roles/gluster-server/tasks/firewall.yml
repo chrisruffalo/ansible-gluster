@@ -1,4 +1,9 @@
 ---
+# this is a complete mess because i had to keep opening ports
+# to get things to work and wasn't really good about tracking why
+# turns out that adding services for things doesn't always open the
+# right ports or _all_ of the right ports. need to clean this up but
+# honestly isn't that critical
 - name: Open Firewall for clients
   firewalld:
     zone: public
