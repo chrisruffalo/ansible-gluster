@@ -1,0 +1,111 @@
+---
+- name: Create storage space on local brick to allow storage of prometheus data
+  file:
+    state: directory
+    path: "/bricks/{{ brick_name }}/prometheus-data"
+    owner: "{{ nobody_user }}"
+    group: "{{ nobody_group }}"
+    mode: "u=rwX,g=rwX,o=rwX"
+
+- name: "Ensure prometheus directories exist"
+  file:
+    path: "{{ item }}"
+    state: directory 
+  with_items:
+  - "/opt/prometheus"
+  - "/etc/prometheus"
+
+- name: Get release for prometheus
+  get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/v2.2.1/prometheus-2.2.1.linux-{{ sys_arch }}.tar.gz"
+    dest: /opt/artifacts/prometheus.tar.gz
+  register: prometheus_download
+
+- name: Unarchive prometheus to correct location
+  unarchive:
+    src: /opt/artifacts/prometheus.tar.gz
+    dest: /opt/prometheus/
+    remote_src: true
+    extra_opts:
+    - "--strip-components=1"
+  when: prometheus_download.changed
+  notify:
+  - restart prometheus
+
+- name: Install prometheus service template
+  template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+  register: prom_service
+  notify:
+  - restart prometheus
+
+- name: Reload daemon
+  systemd:
+    daemon_reload: true
+  when: prom_service.changed
+
+- name: Install prometheus configuration template
+  template:
+    src: prometheus.yml.j2
+    dest: "/etc/prometheus/prometheus.yml"
+  notify:
+  - restart prometheus
+
+- name: Open firewall for prometheus cross-node scraping
+  firewalld:
+    zone: public
+    port: "9090/tcp"
+    state: enabled
+    permanent: true
+    immediate: true
+
+- name: Enable prometheus service
+  service:
+    name: prometheus
+    enabled: true
+    state: started
+
+- name: Ensure supplemental binary path exists
+  file:
+    path: "/opt/bin"
+    state: directory
+
+- name: Get release for node_exporter
+  get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v0.15.2/node_exporter-0.15.2.linux-{{ sys_arch }}.tar.gz"
+    dest: /opt/artifacts/node_exporter.tar.gz
+  register: node_exporter_download
+
+- name: Unarchive node_exporter to correct location
+  unarchive:
+    src: /opt/artifacts/node_exporter.tar.gz
+    dest: /opt/bin/
+    remote_src: true
+    exclude:
+    - "LICENSE"
+    - "NOTICE"
+    extra_opts:
+    - "--strip-components=1"
+  when: node_exporter_download.changed
+  notify:
+  - restart node_exporter
+
+- name: Install node_exporter service unit file
+  template:
+    src: node_exporter.service.j2
+    dest: "/etc/systemd/system/node_exporter.service"
+  register: node_exporter_service
+  notify:
+  - restart node_exporter
+
+- name: Reload daemon
+  systemd:
+    daemon_reload: true
+  when: node_exporter_service.changed
+
+- name: Enable node exporter service
+  service:
+    name: node_exporter
+    enabled: true
+    state: started

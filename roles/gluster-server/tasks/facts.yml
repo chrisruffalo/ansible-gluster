@@ -1,0 +1,53 @@
+---
+- name: Define variables for use during run
+  set_fact:
+    brick_name: "mainbrick"
+    nobody_user: "{{ (ansible_os_family | lower  == 'redhat') | ternary('nfsnobody','nobody') }}"
+    nobody_group: "{{ (ansible_os_family | lower  == 'redhat') | ternary('nfsnobody','nogroup') }}" 
+
+- name: Define host lists for dns, etc
+  set_fact:
+    host_list: "{{ (host_list | default([])) + [hostvars[item]['ansible_hostname']] }}"
+    fqdn_list: "{{ (fqdn_list | default([])) + [hostvars[item]['ansible_fqdn']] }}"
+  with_items: "{{ groups['gluster'] }}"
+
+- name: Set gluster version for debian
+  set_fact:
+    debian_gluster_version: "3.10" # 4.1 = nfs-ganesha 2.6, 3.10 = nfs-ganesha 2.5
+    debian_ganesha_version: "2.6"
+    debian_ganesha_specific_version: "2.6.2"
+
+- name: Set gluster service name based on distro, etc
+  set_fact:
+    gluster_service_name: "{% if (ansible_os_family | lower == 'debian') and debian_gluster_version == '3.10' %}glusterfs-server{% else %}glusterd{% endif %}"
+
+- block:
+  - name: Set system architecture for AMD64/x86_64
+    set_fact:
+      sys_arch: "amd64"
+    when: ansible_architecture is match("x86_64") or (ansible_architecture | lower) is match("amd64")
+
+  - name: Set system architecture for i386/x86
+    set_fact:
+      sys_arch: "386"
+    when: ansible_architecture is match("i386")
+
+  - name: Set system architecture for ARM64
+    set_fact:
+      sys_arch: "arm64"
+    when: ansible_architecture is match("arm64")
+
+  - name: Set system architecture for ARMv7
+    set_fact:
+      sys_arch: "armv7"
+    when: ansible_architecture is match("armv7.+")
+
+  - name: Set system architecture for ARMv6
+    set_fact:
+      sys_arch: "armv6"
+    when: ansible_architecture is match("armv6.+")    
+
+  - name: Set system architecture for ARMv5
+    set_fact:
+      sys_arch: "armv5"
+    when: ansible_architecture is match("armv5.+")

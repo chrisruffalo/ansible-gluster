@@ -1,0 +1,43 @@
+---
+- name: Set up target disk as a pv for volume group
+  lvg:
+    vg: "{{ vg_name }}"
+    pvs: "{{ target_disk }}"
+
+- name: Check for thinpool
+  shell: "lvs | grep {{ vg_name }}_pool"
+  register: thinpool_check
+  changed_when: false
+  failed_when: false
+
+- name: Set up thinpool
+  command: "lvcreate --thinpool {{ vg_name }}/{{ vg_name }}_pool --size {{ pool_size }} --chunksize 256K --poolmetadatasize 16G --zero n"
+  when: thinpool_check.stdout | length < 1
+
+- name: Check for logical volume
+  shell: "lvs | grep {{ brick_name }}"
+  register: vol_check
+  changed_when: false
+  failed_when: false
+
+- name: Set up logical volume
+  command: "lvcreate --thin --name {{ brick_name }} --virtualsize {{ lv_size }} {{ vg_name }}/{{ vg_name }}_pool"
+  when: vol_check.stdout | length < 1
+
+- name: Set up XFS filesystem on created brick
+  filesystem:
+    fstype: xfs
+    dev: "/dev/{{ vg_name }}/{{ brick_name }}"
+    opts: "-i size=512" # 512 byte inodes for gluster
+
+- name: Add mountpoints for newly created brick
+  file:
+    path: "/bricks/{{ brick_name }}"
+    state: directory
+
+- name: Add created filesystem to fstab
+  mount:
+    path: "/bricks/{{ brick_name }}"
+    src: "/dev/{{ vg_name }}/{{ brick_name }}"
+    fstype: xfs
+    state: mounted

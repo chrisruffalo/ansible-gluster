@@ -1,0 +1,9 @@
+[Unit]
+Description=Prometheus Node Exporter service
+After=prometheus.service
+
+[Service]
+ExecStart=/opt/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target

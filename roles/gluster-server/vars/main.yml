@@ -1,0 +1,100 @@
+# disk
+target_disk: /dev/vdb
+pool_size: 7900G
+lv_size: 7850G
+vg_name: vg_cluster
+metrics:
+  enabled: false
+highavailability:
+  enabled: true
+  dns: "storage.localdomain"
+  vip: "10.0.0.50"
+  cidr: 16
+  user: "hacluster"
+  pass: "password"
+  bindnet: "10.0.0.0"
+target_volumes:
+  - name: "storage"
+    exported: true
+    redundancy: 2
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "{{ nobody_user }}"
+      "force group": "{{ nobody_group }}"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "critical"
+    exported: true
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "{{ nobody_user }}"
+      "force group": "{{ nobody_group }}"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "media"
+    exported: true
+    redundancy: 3
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "{{ nobody_user }}"
+      "force group": "{{ nobody_group }}"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "nc_media"
+    exported: true
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "{{ nobody_user }}"
+      "force group": "{{ nobody_group }}"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "bulk"
+    exported: true
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "{{ nobody_user }}"
+      "force group": "{{ nobody_group }}"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "home"
+    exported: true
+    redundancy: 3 
+    mode: u=rwX,g=rwX,o=
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "no"
+      "path": "/%U"
+      "read only": "no"
+      "writable": "yes"
+      "valid users": "%U"
+      "directory mode": "0770"
+      "create mode": "0660"
+      "force group": "{{ nobody_group }}"
+  - name: "config"
+    exported: false
+    redundancy: 3

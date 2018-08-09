@@ -1,0 +1,21 @@
+EXPORT{
+    Export_Id = {{ target_volume_id }} ;   # Export ID unique to each export
+    Path = "/{{ target_volume_name }}";  # Path of the volume to be exported. Eg: "/test_volume"
+
+    Pseudo = "/{{ target_volume_name }}";  # NFSv4 pseudo path for this export. Eg: "/test_volume_pseudo"
+
+    Access_type = RW;    # Access permissions
+    Squash = No_root_squash; # To enable/disable root squashing
+    Disable_ACL = TRUE;  # To enable/disable ACL
+    Protocols = "3","4" ;    # NFS protocols supported
+    Transports = "UDP","TCP" ; # Transport protocols supported
+    SecType = "sys";     # Security flavors supported
+
+    FSAL {
+        name = "GLUSTER";
+        hostname = localhost;  # local ip of hosted gluster service
+        volume = "{{ target_volume_name }}";  # Volume name. Eg: "test_volume"
+        Up_poll_usec = 50;
+        Transport = tcp;
+    }
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=Prometheus Docker Container
+After=network.target
+
+[Service]
+ExecStart=/opt/prometheus/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/bricks/mainbrick/prometheus-data --storage.tsdb.retention=7d
+
+[Install]
+WantedBy=multi-user.target

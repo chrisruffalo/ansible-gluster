@@ -1,0 +1,111 @@
+---
+- name: Install packages that are required before using core functions
+  apt:
+    name: 
+    - apt-transport-https
+    state: latest
+    update_cache: true
+
+- name: Add apt signing key from Gluster
+  apt_key:
+    url: "{{ item }}"
+    state: present
+  with_items:
+  - "http://download.gluster.org/pub/gluster/glusterfs/{{ debian_gluster_version }}/rsa.pub"
+  - "https://download.nfs-ganesha.org/{{ debian_ganesha_version }}/rsa.pub"
+
+- name: Add additional repositories to packages list
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  with_items:
+  - "deb https://download.gluster.org/pub/gluster/glusterfs/{{ debian_gluster_version }}/LATEST/Debian/9/{{ sys_arch }}/apt stretch main"
+  - "deb https://download.nfs-ganesha.org/{{ debian_ganesha_version }}/{{ debian_ganesha_specific_version }}/Debian/9/{{ sys_arch }}/apt/ stretch main"
+  - "deb http://ftp.debian.org/debian stretch-backports main"
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    update_cache: true
+  
+- name: Update APT cache install and supporting packages
+  apt:
+    name: 
+    - lvm2
+    - thin-provisioning-tools
+    - xfsprogs
+    - python3-passlib
+    - python3-docker
+    - software-properties-common
+    - glusterfs-common
+    - glusterfs-client
+    - glusterfs-server
+    - nfs-ganesha
+    - nfs-ganesha-gluster
+    - nfs-ganesha-vfs
+    - samba
+    - samba-common
+    - samba-vfs-modules
+    - attr
+    - rsync
+    - firewalld
+    - python-pip
+    - python3-pip
+    state: latest
+    update_cache: true
+
+- name: Check to ensure gluster (x86_64) module is available from samba-vfs-modules
+  stat:
+    path: "/usr/lib/x86_64-linux-gnu/samba/vfs/glusterfs.so"
+  register: vfs_x86_64_module
+
+- name: Check to ensure gluster (arm64) module is available from samba-vfs-modules
+  stat:
+    path: "/usr/lib/aarch64-linux-gnu/samba/vfs/glusterfs.so"
+  register: vfs_aarch64_module
+
+# entire block for building samba from source in order to install relevant modules
+- name: Source install of Samba VFS
+  block:
+    - name: Install preference file
+      copy:
+        src: debian-testing.pref
+        dest: /etc/apt/preferences.d/testing.pref
+
+    - name: Install sources list file
+      copy:
+        src: debian-testing.list
+        dest: /etc/apt/sources.list.d/testing.list
+
+    - name: Upgrade all packages (again)
+      apt:
+        upgrade: dist
+        update_cache: true
+   
+    - name: Install updated/newer samba packages
+      apt:
+        name: samba
+        state: latest
+        default_release: testing
+        update_cache: true 
+      notify:
+      - restart smb
+      - restart nmb
+
+    - name: Remove apt customization files when done
+      file:
+        state: absent
+        path: "{{ item }}"
+      with_items:
+      - "/etc/apt/preferences.d/testing.pref"
+      - "/etc/apt/sources.list.d/testing.list"
+  when: (not vfs_x86_64_module.stat.exists) and (not vfs_aarch64_module.stat.exists)
+
+- name: Install python firewall module
+  pip:
+    name: firewall
+
+- name: Enable and start firewalld service
+  service:
+    name: firewalld
+    state: started

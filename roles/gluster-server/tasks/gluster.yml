@@ -1,0 +1,126 @@
+---
+- name: Start gluster service
+  service:
+    name: "{{ gluster_service_name }}"
+    enabled: true
+    state: started
+
+- name: Enable shared storage volume
+  command: "gluster volume set all cluster.enable-shared-storage enable"
+  run_once: true
+  changed_when: false
+  failed_when: false
+
+- name: Disable NFS on trusted pool
+  command: "gluster volume set all nfs.disable on"
+  run_once: true
+  changed_when: false
+  failed_when: false
+
+- name: Create gluster volumes
+  vars:
+    expand_only: "{{ extra_expand_only | default(False) | bool }}"
+    replicas: "{{ item.replicas | default(False) }}"
+    redundancy: "{{ item.redundancy | default(False) }}"
+    disperses: "{{ redundancy | ternary(groups.gluster | length, False) }}"
+    arbiters: "{% if replicas and replicas == 2 %}1{% else %}0{% endif %}"
+    force: "{{ item.force | default(False) }}"
+  gluster_volume:
+    name: "{{ item.name }}"
+    bricks: "/bricks/{{ brick_name }}/{{ item.name }}"
+    cluster: "{{ groups.gluster }}"
+    state: present
+    start_on_create: true
+    replicas: "{{ replicas }}"
+    disperses: "{{ disperses }}"
+    redundancies: "{{ redundancy }}"
+    arbiters: "{{ arbiters }}"
+    force: "{{ force }}"
+    options:
+       features.cache-invalidation: 'on'
+       stat-prefetch: 'off'
+       server.allow-insecure: 'on'
+       storage.batch-fsync-delay-usec: '0'
+       user.cifs: 'disable'
+       nfs.disable: 'on'
+       network.ping-timeout: "42"
+  with_items: "{{ target_volumes }}"
+  run_once: true
+  ignore_errors: "{{ expand_only | bool }}"
+
+- name: Ensure brick folders are correctly permissioned
+  file:
+    path: "{{ item }}"
+    state: directory
+    group: "{{ nobody_group }}"
+    owner: "{{ nobody_user }}"
+    mode: "u=rwX,g=rwX,o=rX"
+  with_items:
+    - "/bricks"
+    - "/bricks/{{ brick_name }}"
+
+- name: Ensure that brick folders have the correct context for selinux
+  sefcontext:
+    target:  "/bricks/{{ brick_name }}(/.*)?"
+    setype: glusterd_brick_t
+    state: present
+  when: ansible_os_family | lower == "redhat"
+
+- name: Set selinux context on bricks
+  command: "restorecon -Rv /bricks/{{ brick_name }}"
+  changed_when: false # this doesn't trigger meaningful change
+  when: ansible_os_family | lower == "redhat"
+
+- name: Ensure gluster volume mount point are correctly permissioned
+  file:
+    path: "/bricks/{{ brick_name }}/{{ item.name }}"
+    state: directory
+    group: "{{ nobody_group }}"
+    owner: "{{ nobody_user }}"
+    mode: "{% if item.mode is defined %}{{ item.mode }}{% else %}u=rwX,g=rwX,o=rwX{% endif %}"
+  with_items: "{{ target_volumes }}"
+
+- name: Create shared configuration directory
+  file:
+    state: directory
+    path: "/opt/config"
+
+- name: Check if config directory is mounted already
+  shell: "mount | grep /opt/config"
+  args:
+    warn: false
+  register: found_opt_config_mount
+  failed_when: false
+  changed_when: false
+
+- name: Mount shared configuration folder from gluster
+  mount:
+    path: "/opt/config"
+    src: "{{ ansible_fqdn }}:/config"
+    fstype: glusterfs
+    state: mounted
+    opts: "_netdev"
+  when: found_opt_config_mount.rc > 0
+
+- name: Create local gluster mount point for accounting/metrics/testing/direct usage
+  file:
+    state: directory
+    path: "/glusterfs"
+
+- name: Check if gluster exported directory is mounted already
+  shell: "mount | grep /glusterfs"
+  register: found_glusterfs_mount
+  args:
+    warn: false
+  failed_when: false
+  changed_when: false
+
+- name: Mount shared configuration folder from gluster
+  mount:
+    path: "/glusterfs/{{ item.name }}"
+    src: "{{ ansible_fqdn }}:/{{ item.name }}"
+    fstype: glusterfs
+    state: mounted
+    opts: "_netdev"
+  with_items: "{{ target_volumes }}"
+  when: item.exported and not (item.name in found_glusterfs_mount.stdout)

@@ -1,0 +1,41 @@
+totem {
+  version: 2
+
+  {% for node in groups.gluster %}
+  {% if ansible_hostname == hostvars[node]['ansible_hostname'] %}
+  nodeid: {{ 1000 + loop.index }}
+  {% endif %}
+  {% endfor %}
+
+  crypto_cipher: aes256
+  crypto_hash: sha256
+
+  cluster_name: storage_cluster
+  transport: udpu
+
+  interface {
+    ringnumber: 0
+    bindnetaddr: {{ highavailability.bindnet }}
+    ttl: 1
+  }
+}
+
+nodelist {
+{% for node in groups.gluster %}
+{% if ansible_hostname != hostvars[node]['ansible_hostname'] %}
+  node {
+    ring0_addr: {{ hostvars[node]['ansible_hostname'] }}
+    nodeid: {{ 1000 + loop.index }}
+  }
+{% endif %}
+{% endfor %}
+}
+
+quorum {
+  provider: corosync_votequorum
+  expected_votes: {{ groups.gluster | length }}
+  two_node: {% if groups.gluster | length == 2  %}1{% else %}0{% endif %}{{ '' }}
+  wait_for_all: 0
+  last_man_standing: 1
+  auto_tie_breaker: 1
+}

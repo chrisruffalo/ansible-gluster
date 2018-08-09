@@ -1,0 +1,40 @@
+---
+- name: Configure NFS Ganesha main configuration
+  template:
+    src: ganesha.conf.j2
+    dest: /etc/ganesha/ganesha.conf
+  notify:
+    - "restart nfs-ganesha"
+
+- name: Ensure export folder exists for ganesha configuration
+  file:
+    path: /etc/ganesha/exports
+    state: directory
+
+- name: Configure NFS Ganesha exports for target volumes
+  template:
+    src: export.target_volume_name.conf.j2
+    dest: /etc/ganesha/exports/export.{{ item.1.name }}.conf
+  vars:
+    target_volume_id: "{% if item.1.id is defined %}{{ item.1.id }}{% else %}{{ item.0 + 1000 }}{% endif %}" # volume id should always be > 0, a 0 ID won't be exported
+    target_volume_name: "{{ item.1.name }}"
+  with_indexed_items: "{{ target_volumes }}"
+  when: item.1.exported
+  notify:
+  - "restart nfs-ganesha"
+
+- name: Ensure gluster is started
+  service:
+    name: "{{ gluster_service_name }}"
+    state: started
+    enabled: true
+
+- name: Start NFS Ganesha service
+  service:
+    name: nfs-ganesha
+    state: started
+    enabled: true
+  notify:
+  - "restart glusterd"
+
+

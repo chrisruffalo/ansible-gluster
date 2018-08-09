@@ -1,0 +1,38 @@
+---
+- include: facts.yml
+  tags:
+    - always
+
+- include: pre.yml
+  tags:
+    - pre
+
+- include: disks.yml
+  tags:
+    - disks
+
+- include: firewall.yml
+  tags:
+    - firewall
+
+- include: gluster.yml
+  tags:
+    - gluster
+
+- include: sharing.yml
+  tags:
+    - sharing
+    - nfs
+    - samba
+
+# prometheus and grafana tasks for storing/displaying metrics
+- include: prometheus.yml
+  tags: 
+  - prometheus
+  when: metrics.enabled
+
+# do HA tasks when ha is explicitly enabled
+- include: ha.yml
+  tags:
+    - ha
+  when: highavailability.enabled

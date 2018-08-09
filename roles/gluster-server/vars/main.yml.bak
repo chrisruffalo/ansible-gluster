@@ -1,0 +1,85 @@
+# disk
+target_disk: /dev/vdb
+pool_size: 100%VG
+vg_name: vg_cluster
+metrics:
+  enabled: true
+highavailability:
+  enabled: true
+  dns: "storage.local"
+  vip: "192.168.122.45"
+  user: "hacluster"
+  pass: "password"
+target_volumes:
+  - name: "storage"
+    exported: true
+    replicas: 2
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "nfsnobody"
+      "force group": "nfsnobody"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "critical"
+    exported: true
+    replicas: 4
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "nfsnobody"
+      "force group": "nfsnobody"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "media"
+    exported: true
+    replicas: 2
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "nfsnobody"
+      "force group": "nfsnobody"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "nc_media"
+    exported: true
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "yes"
+      "path": "/"
+      "read only": "no"
+      "writable": "yes"
+      "force user": "nfsnobody"
+      "force group": "nfsnobody"
+      "guest only": "yes"
+      "directory mode": "0777"
+      "create mode": "0666"
+  - name: "home"
+    exported: true
+    replicas: 4
+    mode: u=rwX,g=rwX,o=
+    smb_options:
+      "browsable": "yes"
+      "guest ok": "no"
+      "path": "/%U"
+      "read only": "no"
+      "writable": "yes"
+      "valid users": "%U"
+      "directory mode": "0770"
+      "create mode": "0660"
+      "force group": "nfsnobody"
+  - name: "config"
+    exported: false
+    replicas: 2

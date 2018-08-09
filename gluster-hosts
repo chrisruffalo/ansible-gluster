@@ -1,0 +1,8 @@
+[gluster]
+storage01 ansible_python_interpreter=/usr/bin/python3
+storage02 ansible_python_interpreter=/usr/bin/python3
+storage03 ansible_python_interpreter=/usr/bin/python3
+storage04 ansible_python_interpreter=/usr/bin/python3
+storage05 ansible_python_interpreter=/usr/bin/python3
+storage06 ansible_python_interpreter=/usr/bin/python3
+storage07 ansible_python_interpreter=/usr/bin/python3

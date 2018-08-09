@@ -1,0 +1,28 @@
+---
+- name: Set up SE booleans for samba and nfs-ganesha
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  with_items:
+    - "samba_load_libgfapi"
+    - "nis_enabled"
+    - "authlogin_nsswitch_use_ldap"
+    - "samba_create_home_dirs"
+    - "samba_enable_home_dirs"
+    - "samba_export_all_rw"
+  tags:
+    - selinux
+    - nfs
+    - samba
+  when: ansible_os_family | lower == "redhat" 
+
+- include: nfs.yml
+  tags:
+    - nfs
+    - sharing
+
+- include: samba.yml
+  tags:
+    - samba
+    - sharing

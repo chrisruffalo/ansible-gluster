@@ -1,0 +1,45 @@
+---
+- name: Add apt signing key from packagecloud
+  apt_key:
+    url: https://download.gluster.org/pub/gluster/glusterfs/3.12/rsa.pub
+    state: present
+
+- name: Add gluster repos
+  apt_repository:
+     repo: "{{ item }}"
+  with_items:
+  - "ppa:gluster/glusterfs-3.13"
+  - "ppa:gluster/nfs-ganesha-2.6"
+  - "ppa:gluster/libntirpc-1.6"
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    update_cache: true
+
+- name: Update APT cache install and supporting packages
+  apt:
+    name: 
+    - python3-passlib
+    - python3-docker
+    - software-properties-common
+    - glusterfs-common
+    - glusterfs-client
+    - glusterfs-server
+    - nfs-ganesha
+    - nfs-ganesha-gluster
+    - libntirpc1
+    - samba
+    - samba-common
+    - samba-vfs-modules
+    - attr
+    - rsync
+    - firewalld
+    - python-firewall
+    state: latest
+    update_cache: true
+
+- name: Enable and start firewalld service
+  service:
+    name: firewalld
+    state: started

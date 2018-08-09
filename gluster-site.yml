@@ -1,0 +1,5 @@
+---
+- hosts: gluster
+  become: true
+  roles:
+    - gluster-server

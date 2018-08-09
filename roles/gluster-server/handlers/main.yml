@@ -1,0 +1,54 @@
+---
+- name: "restart glusterd"
+  service:
+    name: "{{ gluster_service_name }}"
+    state: restarted
+
+- name: "restart nfs-ganesha"
+  service:
+    name: nfs-ganesha
+    state: restarted
+
+- name: "restart smb"
+  vars:
+    service_name: "{{ (ansible_os_family | lower == 'debian') | ternary('smbd', 'smb') }}"
+  service:
+    name: "{{ service_name }}"
+    state: restarted
+
+- name: "restart nmb"
+  vars:
+    service_name: "{{ (ansible_os_family | lower == 'debian') | ternary('nmbd', 'nmb') }}"
+  service:
+    name: "{{ service_name }}"
+    state: restarted
+
+- name: "restart pcsd"
+  service:
+    name: pcsd
+    state: restarted
+
+- name: "restart corosync"
+  service:
+    name: corosync
+    state: restarted
+
+- name: "restart pacemaker"
+  service:
+    name: pacemaker
+    state: restarted
+
+- name: "restart prometheus"
+  service:
+    name: prometheus
+    state: restarted  
+
+- name: "restart node_exporter"
+  service:
+    name: node_exporter
+    state: restarted
+
+- name: "restart grafana"
+  service:
+    name: "grafana-server"
+    state: restarted

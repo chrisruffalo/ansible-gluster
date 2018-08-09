@@ -1,0 +1,9 @@
+---
+# choose and include OS family prerequisites
+- include_tasks: "pre-{{ ansible_os_family | lower  }}.yml"
+
+# later on at several points we need a place to download artifacts
+- name: "Ensure optional artifact directory exists"
+  file:
+    path: "/opt/artifacts"
+    state: directory 

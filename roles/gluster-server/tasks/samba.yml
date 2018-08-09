@@ -1,0 +1,38 @@
+---
+- name: "Add empty samba users"
+  command: "smbpasswd -a {{ item }} -n"
+  with_items:
+    - "{{ nobody_user }}"
+    - "guest"
+  register: smbpasswd_result
+  failed_when: false
+  changed_when: smbpasswd_result.stdout is search("^Added user.*")
+  notify:
+    - "restart smb"
+    - "restart nmb"
+
+- name: Set up Samba configuration
+  template:
+    src: samba.conf.j2
+    dest: /etc/samba/smb.conf
+  notify:
+    - "restart smb"
+    - "restart nmb"
+
+- name: Ensure services are enabled
+  service:
+    name: "{{ item }}"
+    enabled: true
+  with_items:
+    - "smb"
+    - "nmb"
+  when: ansible_os_family | lower == "redhat"
+
+- name: Ensure services are enabled
+  service:
+    name: "{{ item }}"
+    enabled: true
+  with_items:
+    - "nmbd"
+    - "smbd"
+  when: ansible_os_family | lower == "debian"

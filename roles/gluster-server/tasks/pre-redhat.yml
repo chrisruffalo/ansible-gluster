@@ -1,0 +1,33 @@
+---
+- name: Install prerequisite packages
+  yum:
+    name:
+    - centos-release-gluster40
+    - epel-release
+
+- name: Upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+
+- name: Install/upgrade supporting (gluster, docker, sharing, etc) packages
+  yum:
+    name:
+    - xfsprogs
+    - python-passlib
+    - glusterfs
+    - glusterfs-fuse
+    - glusterfs-server
+    - glusterfs-api
+    - nfs-ganesha
+    - nfs-ganesha-gluster
+    - attr
+    - samba
+    - samba-client
+    - samba-common
+    - samba-vfs-glusterfs
+    - rsync
+    - libsemanage-python    
+    - selinux-policy-targeted
+    - python-firewall
+    state: latest

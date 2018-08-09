@@ -1,0 +1,205 @@
+---
+- name: Install supporting packages (Red Hat)
+  yum:
+    name:
+    - pacemaker
+    - pcs
+    - resource-agents
+    state: latest
+  when: ansible_os_family | lower == "redhat"
+
+- name: Install supporting packages (Ubuntu)
+  apt:
+    name:
+    - pacemaker
+    - corosync
+    - pcs
+    - resource-agents
+    state: latest
+  when: ansible_distribution | lower == "ubuntu"
+
+- name: Install supporting packages (Debian)
+  apt:
+    name:
+    - pacemaker
+    - corosync
+    - pcs
+    - resource-agents
+    - crmsh
+  when: ansible_distribution | lower == "debian"
+
+- name: Create user for pcs authentication
+  user:
+    name: "{{ highavailability.user }}"
+    password: "{{ highavailability.pass | password_hash('sha512') }}"
+
+- name: Allow high-availability traffic through firewall
+  firewalld:
+    zone: public
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  with_items:
+  - "high-availability"
+
+# https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/high_availability_add-on_reference/s1-firewalls-haar
+- name: Allow high-availability port traffic through firewall
+  firewalld:
+    zone: public
+    port: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  with_items:
+  - "2224/tcp"
+  - "3121/tcp"
+  - "21064/tcp"
+  - "5403/tcp"
+  - "5404/tcp"
+  - "5404/udp"
+  - "5405/tcp"
+  - "5405/udp"
+  - "21064/tcp"
+  notify:
+  - "restart pcsd"
+  - "restart corosync"
+  - "restart pacemaker"
+
+- name: Ensure tokens exist
+  stat:
+    path: /var/lib/pcsd/tokens
+  register: tokens
+
+- block:
+  - name: Ensure corosync and pacemaker are stopped
+    service:
+      name: "{{ item }}"
+      state: stopped
+    with_items:
+    - corosync
+    - pacemaker
+
+  - name: Ensure corosync is not configured
+    file:
+      path: /etc/corosync/corosync.conf
+      state: absent      
+  when: not tokens.stat.exists
+
+- name: Start PCSD first (having corosync and pacemaker started breaks initial cluster auth)
+  service:
+    name: pcsd
+    state: started
+
+- name: Authenticate cluster before continuing
+  command: "pcs cluster auth {{ host_list | join(' ') }} -u {{ highavailability.user }} -p {{ highavailability.pass }} --force"
+  changed_when: false
+  run_once: true
+
+- name: Add organizing directory for cluster cron stuff
+  file:
+    path: /opt/cron
+    state: directory
+
+- name: Add template for cluster cronjobs
+  template:
+    src: cluster_cron.j2
+    dest: /opt/cron/cluster_cron
+    mode: 0644
+  register: cron_changed
+
+- name: Create corosync authentication keys
+  command: "corosync-keygen -l"
+  args:
+    creates: /etc/corosync/authkey
+  run_once: true
+
+- name: Grab required files for sync
+  fetch:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    flat: yes
+  run_once: true
+  with_items:
+  - src: /etc/corosync/authkey
+    dest: /tmp/authkey
+
+- name: Synchronize auth information
+  synchronize:
+    src: /tmp/authkey
+    dest: /etc/corosync/authkey
+  when: inventory_hostname != groups.gluster[0]
+  notify:
+    - "restart pcsd"
+    - "restart corosync"
+
+- name: Create corosync configuration
+  template:
+    src: corosync.conf.j2
+    dest: /etc/corosync/corosync.conf
+  notify:
+    - "restart pcsd"
+    - "restart corosync"
+    - "restart pacemaker"
+
+- name: Enable and start services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - "corosync"
+    - "pacemaker"
+
+- name: Authenticate cluster
+  command: "pcs cluster auth {{ host_list | join(' ') }} -u {{ highavailability.user }} -p {{ highavailability.pass }} --force"
+  changed_when: false
+  run_once: true
+
+- name: Start cluster  
+  command: "pcs cluster start"
+  changed_when: false
+  run_once: true
+
+- name: Make sure STONITH fencing is off until we figure out how to configure it right
+  command: "pcs property set stonith-enabled=false"
+  changed_when: false
+  run_once: true
+
+- name: Add IPs to cluster with a tight monitoring interval
+  command: "pcs resource create ClusterIP ocf:heartbeat:IPaddr2 ip={{ highavailability.vip }} cidr_netmask={{ highavailability.cidr }} op monitor interval=3s"
+  failed_when: false
+  changed_when: false
+  run_once: true
+
+- name: Load balance IP in cluster
+  vars:
+    max_ips: "{{ [2, [3, (groups['gluster'] | length) / 2] | min] | max }}"
+  command: "pcs resource clone ClusterIP clone-max={{ max_ips }} clone-node-max={{ max_ips }} globally-unique=true clusterip_hash=sourceip"
+  args:
+    warn: false
+  run_once: true
+  changed_when: false
+  failed_when: false
+
+- name: Add resource for cron symlink so that it can be executed by one node in the cluster
+  command: "pcs resource create cronlink ocf:heartbeat:symlink link=/etc/cron.d/cluster_cron target=/opt/cluster_cron op monitor interval=30s"
+  args:
+    warn: false
+  run_once: true
+  changed_when: false
+  failed_when: false
+
+- name: When cron file changed, delete link
+  file:
+    path: /etc/cron.d/cluster_cron
+    state: absent
+  when: cron_changed.changed
+
+- name: When cron file changed, restart resource
+  command: "pcs resource restart cronlink"
+  args:
+    warn: false
+  run_once: true
+  failed_when: false
+  when: cron_changed.changed

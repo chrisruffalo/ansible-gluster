@@ -1,0 +1,43 @@
+[global]
+  workgroup = WORKGROUP
+  security = user
+
+  # invalid users
+  invalid users = root bin mail
+
+  # use bad user as guest user
+  map to guest = Bad User
+
+  # default guest account
+  guest account = {{ nobody_user }}
+  passdb backend = tdbsam
+  printing = cups
+  printcap name = cups
+  load printers = yes
+  cups options = raw
+
+  # performance tuning options
+  socket options = TCP_NODELAY IPTOS_LOWDELAY
+  getwd cache = yes
+  oplocks = yes
+
+  log level = 3
+
+{% for volume in target_volumes -%}
+{% if volume.exported -%}
+[{{ volume.name }}]
+  comment = For samba share of volume {{ volume.name }}
+  vfs objects = glusterfs
+  glusterfs:volume = {{ volume.name }}
+  glusterfs:logfile = /var/log/samba/glusterfs-{{ volume.name }}.log
+  glusterfs:loglevel = 5
+  kernel share modes = no
+  {% if volume.smb_options is defined -%}
+  {% for key, value in volume.smb_options.iteritems() -%}
+  {{ key }} = {{ value }}
+  {% endfor -%}
+  {% endif -%}
+{% endif -%}
+
+
+{% endfor -%}
