@@ -1,0 +1,10 @@
+[Unit]
+{% for volume in target_volumes -%}
+{% if volume.exported -%}
+After=gluster-{{ volume.name }}.mount
+{% endif %}
+{% endfor %}
+
+[Service]
+ExecStartPre=/bin/sleep 5
+
