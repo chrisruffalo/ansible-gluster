@@ -21,16 +21,16 @@
   getwd cache = yes
   oplocks = yes
 
-  log level = 3
+  log level = 1
 
 {% for volume in target_volumes -%}
-{% if volume.exported -%}
+{% if volume.smb | default(False) -%}
 [{{ volume.name }}]
   comment = For samba share of volume {{ volume.name }}
   vfs objects = glusterfs
   glusterfs:volume = {{ volume.name }}
   glusterfs:logfile = /var/log/samba/glusterfs-{{ volume.name }}.log
-  glusterfs:loglevel = 5
+  glusterfs:loglevel = 1
   kernel share modes = no
   {% if volume.smb_options is defined -%}
   {% for key, value in volume.smb_options.iteritems() -%}

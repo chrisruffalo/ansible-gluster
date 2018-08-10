@@ -15,7 +15,6 @@ EXPORT{
         name = "GLUSTER";
         hostname = localhost;  # local ip of hosted gluster service
         volume = "{{ target_volume_name }}";  # Volume name. Eg: "test_volume"
-        Up_poll_usec = 50;
         Transport = tcp;
     }
-}
+} 

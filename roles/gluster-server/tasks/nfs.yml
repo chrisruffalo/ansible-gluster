@@ -32,7 +32,7 @@
     target_volume_id: "{% if item.1.id is defined %}{{ item.1.id }}{% else %}{{ item.0 + 1000 }}{% endif %}" # volume id should always be > 0, a 0 ID won't be exported
     target_volume_name: "{{ item.1.name }}"
   with_indexed_items: "{{ target_volumes }}"
-  when: item.1.exported
+  when: item.1.nfs | default(False)
   notify:
   - "restart nfs-ganesha"
 

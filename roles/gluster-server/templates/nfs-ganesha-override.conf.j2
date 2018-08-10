@@ -1,6 +1,6 @@
 [Unit]
 {% for volume in target_volumes -%}
-{% if volume.exported -%}
+{% if volume.nfs | default(False) -%}
 After=gluster-{{ volume.name }}.mount
 {% endif %}
 {% endfor %}

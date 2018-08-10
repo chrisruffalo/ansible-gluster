@@ -1,15 +1,31 @@
 # from: http://docs.gluster.org/en/latest/Administrator%20Guide/NFS-Ganesha%20GlusterFS%20Integration/
 NFS_Core_Param {
-        #Use supplied name other tha IP In NSM operations
+        # Use supplied name other tha IP In NSM operations
         NSM_Use_Caller_Name = true;
-        #Copy lock states into "/var/lib/nfs/ganesha" dir
+        
+        # Copy lock states into "/var/lib/nfs/ganesha" dir
         Clustered = false;
-        #Use a non-privileged port for RQuota
+ 
+        # Use a fixed port for MOUNTD
+        MNT_Port = 892;
+
+        # Use a non-privileged port for RQuota
         Rquota_Port = 875;
+
+        # Use a fixed port for nlockmgr/lockd
+        NLM_Port = 32803;
+
+        # enable pNFS
+        pnfs_mds = true;
+        pnfs_ds = true;
+}
+
+GLUSTER {
+    PNFS_MDS = true;
 }
 
 {% for volume in target_volumes %}
-{% if volume.exported %}
+{% if volume.nfs | default(False) %}
 %include "/etc/ganesha/exports/export.{{ volume.name }}.conf"
 {% endif %}
 {% endfor %}

@@ -105,7 +105,9 @@
 - name: Create local gluster mount point for accounting/metrics/testing/direct usage
   file:
     state: directory
-    path: "/glusterfs"
+    path: "/glusterfs/"
+    mode: "{{ default_mode }}"
+    group: "{{ nobody_group }}"
 
 - name: Check if gluster exported directory is mounted already
   shell: "mount | grep /glusterfs"
@@ -123,4 +125,4 @@
     state: mounted
     opts: "_netdev"
   with_items: "{{ target_volumes }}"
-  when: item.exported and not (item.name in found_glusterfs_mount.stdout)
+  when: (item.mount | default(True)) and not (item.name in found_glusterfs_mount.stdout)

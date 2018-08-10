@@ -11,6 +11,30 @@
     - "restart smb"
     - "restart nmb"
 
+- name: "Add samba user group to system"
+  group:
+    name: "sambauser"
+
+- name: "Add samba users to system"
+  user:
+    name: "{{ item.user }}"
+    password: "{{ item.pass | password_hash('sha512') }}"
+    groups:
+    - "sambauser"
+    - "{{ nobody_group }}"
+    append: true
+  with_items: "{{ samba_users | default([]) }}"
+
+- name: "Add samba users with their samba passwords"
+  shell: "(echo {{ item.pass }}; echo {{ item.pass }}) | smbpasswd -s -a {{ item.user }}"
+  with_items: "{{ samba_users | default([]) }}"
+  register: user_smbpasswd_result
+  failed_when: false
+  changed_when: user_smbpasswd_result.stdout is search("^Added user.*")
+  notify:
+    - "restart smb"
+    - "restart nmb"
+
 - name: Set up Samba configuration
   template:
     src: samba.conf.j2
