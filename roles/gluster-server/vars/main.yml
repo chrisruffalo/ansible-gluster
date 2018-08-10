@@ -17,6 +17,8 @@ highavailability:
 samba_users:
 - user: "dummy1"
   pass: "pass1"
+- user: "dummy2"
+  pass: "pass2"
 target_volumes:
 - name: "storage"
   nfs: true
@@ -95,17 +97,18 @@ target_volumes:
   mode: u=rwX,g=rwX,o=
   nfs: false
   smb: true
+  smb_reshare: true
   smb_options:
     "browsable": "yes"
     "guest ok": "no"
-    "path": "/%U"
+    "path": "/glusterfs/home/%U"
     "read only": "no"
     "writable": "yes"
     "valid users": "%U"
     "directory mode": "0770"
     "create mode": "0660"
     "force group": "{{ nobody_group }}"
-    "root preexec": "/usr/bin/mkdir -p /glusterfs/home/%U && chown %U /glusterfs/home/%U"
+    "root preexec": "/opt/smbdiradd.sh home %U"
 - name: "config"
   mount: false
   redundancy: 3

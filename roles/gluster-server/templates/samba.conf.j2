@@ -23,15 +23,17 @@
 
   log level = 1
 
-{% for volume in target_volumes -%}
+{% for volume in target_volumes %}
 {% if volume.smb | default(False) -%}
 [{{ volume.name }}]
   comment = For samba share of volume {{ volume.name }}
+  {% if not (volume.smb_reshare | default(False)) -%}
   vfs objects = glusterfs
   glusterfs:volume = {{ volume.name }}
   glusterfs:logfile = /var/log/samba/glusterfs-{{ volume.name }}.log
   glusterfs:loglevel = 1
   kernel share modes = no
+  {% endif -%}
   {% if volume.smb_options is defined -%}
   {% for key, value in volume.smb_options.iteritems() -%}
   {{ key }} = {{ value }}
@@ -39,5 +41,4 @@
   {% endif -%}
 {% endif -%}
 
-
-{% endfor -%}
+{% endfor %}

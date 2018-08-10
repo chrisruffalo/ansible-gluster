@@ -43,6 +43,12 @@
     - "restart smb"
     - "restart nmb"
 
+- name: Add smbdiradd support script
+  copy:
+    src: smbdiradd.sh
+    dest: /opt/smbdiradd.sh
+    mode: 0700
+
 - name: Ensure services are enabled
   service:
     name: "{{ item }}"
