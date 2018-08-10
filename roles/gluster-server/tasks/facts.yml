@@ -4,6 +4,8 @@
     brick_name: "mainbrick"
     nobody_user: "{{ (ansible_os_family | lower  == 'redhat') | ternary('nfsnobody','nobody') }}"
     nobody_group: "{{ (ansible_os_family | lower  == 'redhat') | ternary('nfsnobody','nogroup') }}" 
+    smb_service: "{{ (ansible_os_family | lower == 'debian') | ternary('smbd', 'smb') }}"
+    nmb_service: "{{ (ansible_os_family | lower == 'debian') | ternary('nmbd', 'nmb') }}"
 
 - name: Define host lists for dns, etc
   set_fact:

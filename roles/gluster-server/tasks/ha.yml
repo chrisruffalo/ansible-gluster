@@ -28,6 +28,16 @@
     - crmsh
   when: ansible_distribution | lower == "debian"
 
+- name: Ensure that smbd, nmbd, and nfs-ganesha are stopped (they will be cluster services)
+  service:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  with_items:
+  - "nfs-ganesha"
+  - "{{ smb_service }}"
+  - "{{ nmb_service }}"
+
 - name: Create user for pcs authentication
   user:
     name: "{{ highavailability.user }}"
@@ -181,10 +191,12 @@
   changed_when: false
   run_once: true
 
+- name: Determine MAX clones
+  set_fact:
+    max_clones: "{{ [2, [3, (groups['gluster'] | length) / 2] | min] | max }}"
+
 - name: Load balance IP in cluster
-  vars:
-    max_ips: "{{ [2, [3, (groups['gluster'] | length) / 2] | min] | max }}"
-  command: "pcs resource clone ClusterIP clone-max={{ max_ips }} clone-node-max={{ max_ips }} globally-unique=true clusterip_hash=sourceip"
+  command: "pcs resource clone ClusterIP clone-max={{ max_clones }} clone-node-max={{ max_clones }} globally-unique=true clusterip_hash=sourceip"
   args:
     warn: false
   run_once: true
@@ -198,6 +210,27 @@
   run_once: true
   changed_when: false
   failed_when: false
+
+- name: Add other resources, services and clones, and constraints
+  command: "{{ item }}"
+  args:
+    warn: false
+  run_once: true
+  changed_when: false
+  failed_when: false
+  with_items:
+  - "pcs resource create nfs systemd:nfs-ganesha"
+  - "pcs resource create {{ smb_service }} systemd:{{ smb_service }}"
+  - "pcs resource create {{ nmb_service }} systemd:{{ nmb_service }}"
+  - "pcs resource clone nfs clone-max={{ max_clones }} clone-node-max=1"
+  - "pcs resource clone {{ smb_service }} clone-max={{ max_clones }} clone-node-max=1"
+  - "pcs resource clone {{ nmb_service }} clone-max={{ max_clones }} clone-node-max=1"
+  - "pcs constraint colocation add nfs-clone with ClusterIP-clone score=INFINITY"
+  - "pcs constraint colocation add {{ smb_service }}-clone with ClusterIP-clone score=INFINITY"
+  - "pcs constraint colocation add {{ nmb_service }}-clone with {{ smb_service }}-clone score=INFINITY"
+  - "pcs constraint order ClusterIP-clone then {{ smb_service }}-clone --force"
+  - "pcs constraint order {{ smb_service }}-clone then {{ nmb_service }}-clone --force"
+  - "pcs constraint order {{ nmb_service }}-clone then nfs-clone --force"
 
 - name: When cron file changed, delete link
   file:

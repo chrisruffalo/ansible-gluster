@@ -46,17 +46,7 @@
 - name: Ensure services are enabled
   service:
     name: "{{ item }}"
-    enabled: true
+    enabled: "{{ not highavailability.enabled }}"
   with_items:
-    - "smb"
-    - "nmb"
-  when: ansible_os_family | lower == "redhat"
-
-- name: Ensure services are enabled
-  service:
-    name: "{{ item }}"
-    enabled: true
-  with_items:
-    - "nmbd"
-    - "smbd"
-  when: ansible_os_family | lower == "debian"
+    - "{{ smb_service }}"
+    - "{{ nmb_service }}"

@@ -8,20 +8,19 @@
   service:
     name: nfs-ganesha
     state: restarted
+  when: not highavailability.enabled
 
 - name: "restart smb"
-  vars:
-    service_name: "{{ (ansible_os_family | lower == 'debian') | ternary('smbd', 'smb') }}"
   service:
-    name: "{{ service_name }}"
+    name: "{{ smb_service }}"
     state: restarted
+  when: not highavailability.enabled
 
 - name: "restart nmb"
-  vars:
-    service_name: "{{ (ansible_os_family | lower == 'debian') | ternary('nmbd', 'nmb') }}"
   service:
-    name: "{{ service_name }}"
+    name: "{{ nmb_service }}"
     state: restarted
+  when: not highavailability.enabled
 
 - name: "restart pcsd"
   service:

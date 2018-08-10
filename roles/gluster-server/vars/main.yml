@@ -105,6 +105,7 @@ target_volumes:
     "directory mode": "0770"
     "create mode": "0660"
     "force group": "{{ nobody_group }}"
+    "root preexec": "/usr/bin/mkdir -p /glusterfs/home/%U && chown %U /glusterfs/home/%U"
 - name: "config"
   mount: false
   redundancy: 3

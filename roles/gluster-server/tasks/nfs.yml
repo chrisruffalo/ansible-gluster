@@ -44,8 +44,5 @@
 - name: Start NFS Ganesha service
   service:
     name: nfs-ganesha
-    state: started
-    enabled: true
-  notify:
-  - "restart glusterd"
-
+    state: "{% if highavailability.enabled %}stopped{% else %}started{% endif %}"
+    enabled: "{{ not highavailability.enabled }}"
