@@ -26,7 +26,7 @@
   - "32803/tcp"
   - "32769/udp"
   - "38465-38469/tcp"
-  - "38000-44000/tcp"
+  - "30000-44000/tcp" # mountd is all over the place
   - "631/tcp"
   - "111/udp"
   - "875/udp"
