@@ -85,14 +85,6 @@
     state: directory
     path: "/opt/config"
 
-- name: Check if config directory is mounted already
-  shell: "mount | grep /opt/config"
-  args:
-    warn: false
-  register: found_opt_config_mount
-  failed_when: false
-  changed_when: false
-
 - name: Mount shared configuration folder from gluster
   mount:
     path: "/opt/config"
@@ -100,7 +92,19 @@
     fstype: glusterfs
     state: mounted
     opts: "_netdev"
-  when: found_opt_config_mount.rc > 0
+
+- name: Create Ganesha cluster lock directory if it doesn't exist
+  file:
+    state: directory
+    path: "/var/lib/nfs/ganesha"
+
+- name: Mount shared lock folder from gluster
+  mount:
+    path: "/var/lib/nfs/ganesha"
+    src: "{{ ansible_fqdn }}:/locks"
+    fstype: glusterfs
+    state: mounted
+    opts: "_netdev"
 
 - name: Create local gluster mount point for accounting/metrics/testing/direct usage
   file:
@@ -108,7 +112,7 @@
     path: "/glusterfs/"
     mode: "{{ default_mode }}"
     group: "{{ nobody_group }}"
-
+  
 - name: Check if gluster exported directory is mounted already
   shell: "mount | grep /glusterfs"
   register: found_glusterfs_mount

@@ -64,6 +64,9 @@ target_volumes:
     "guest only": "yes"
     "directory mode": "0777"
     "create mode": "0666"
+- name: "nextcloud"
+  mount: false
+  redundancy: 3
 - name: "nc_media"
   nfs: true
   smb: true
@@ -112,3 +115,5 @@ target_volumes:
 - name: "config"
   mount: false
   redundancy: 3
+- name: "locks"
+  mount: false
